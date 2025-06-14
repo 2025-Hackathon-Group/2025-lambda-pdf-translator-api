@@ -9,7 +9,9 @@ For development, use the following command to spin up and connect to the api doc
 docker compose -f docker-compose-dev.yml up -d && docker compose -f docker-compose-dev.yml exec api bash
 ```
 
-then once in the container run use the makefile:
+Make sure to `cd /app` after entering.
+
+Once in the container run use the makefile:
  - `make run` starts the server
  - `make seed` seeds the database with the following credentials:
 

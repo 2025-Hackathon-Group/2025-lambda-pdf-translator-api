@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Initialize and start the server
-	r := router.NewRouter()
+	r := router.NewRouter(database.GetDB())
 
 	if err := r.Run(":" + os.Getenv("PORT")); err != nil {
 		fmt.Printf("Failed to start server: %v\n", err)
