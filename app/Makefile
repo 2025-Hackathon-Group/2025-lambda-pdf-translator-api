@@ -2,18 +2,23 @@
 
 # Binary name
 BINARY_NAME=app
+MODULE_PATH=cmd/cli/main.go
 
 # Build the application
 build:
-	go build -o $(BINARY_NAME) ./...
+	go build -o $(BINARY_NAME) $(MODULE_PATH)
 
 # Run the application
 run:
-	go run ./...
+	go run $(MODULE_PATH)
 
 # Run tests
 test:
 	go test -v ./...
+
+# Seed the database
+seed:
+	go run cmd/cli/seed/main.go run
 
 # Clean build files
 clean:
