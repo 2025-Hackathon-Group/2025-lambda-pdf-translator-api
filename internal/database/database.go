@@ -40,6 +40,14 @@ func NewConfig() *Config {
 func Connect() error {
 	config := NewConfig()
 
+	fmt.Println("Connecting to database...")
+	fmt.Println("Host: " + config.Host)
+	fmt.Println("Port: " + config.Port)
+	fmt.Println("User: " + config.User)
+	fmt.Println("Password: " + config.Password)
+	fmt.Println("DBName: " + config.DBName)
+	fmt.Println("SSLMode: " + config.SSLMode)
+
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
 

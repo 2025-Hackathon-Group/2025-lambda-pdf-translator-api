@@ -1,8 +1,12 @@
 FROM golang:1.24.4-bookworm AS builder
 
+LABEL maintainer="Sam Laister <saml@everbit.dev>"
+LABEL version="1.0"
+LABEL description="PDF Translator API"
+
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY . . 
 
 RUN go mod download && go mod verify
 

@@ -39,3 +39,6 @@ lint:
 
 # Default target
 all: deps build test
+
+migrate:
+	go run cmd/migrate/main.go

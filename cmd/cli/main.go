@@ -24,15 +24,10 @@ func main() {
 		return
 	}
 
-	// Migrate the database
-	if err := database.AutoMigrate(); err != nil {
-		fmt.Printf("Failed to migrate database: %v\n", err)
-		return
-	}
-
 	// Initialize and start the server
 	r := router.NewRouter(database.GetDB())
 
+	fmt.Println("Server started on port " + os.Getenv("PORT"))
 	if err := r.Run(":" + os.Getenv("PORT")); err != nil {
 		fmt.Printf("Failed to start server: %v\n", err)
 	}
