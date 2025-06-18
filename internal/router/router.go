@@ -22,9 +22,11 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	bucketRepository := repository.NewMinioBucketRepository(os.Getenv("S3_ENDPOINT"), os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY"))
 
 	// Initialize handlers
 	userHandler := handler.NewUserHandler(userService, userRepo, db)
+	bucketHandler := handler.NewBucketHandler(bucketRepository, repository.NewFileRepository(db))
 
 	// Initialize middleware
 	authMiddleware := middleware.AuthMiddleware(db, userService)
@@ -47,6 +49,13 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 			userRoutes.GET("/", userHandler.GetUser)
 			userRoutes.PUT("/", userHandler.UpdateUser)
 			userRoutes.GET("/organizations", userHandler.GetUserOrganisations)
+		}
+		fileRoutes := api.Group("/files")
+		{
+			fileRoutes.Use(authMiddleware)
+			fileRoutes.POST("/", bucketHandler.UploadFile)
+			fileRoutes.GET("/:file_id", bucketHandler.GetFileByID)
+			fileRoutes.GET("/", bucketHandler.GetFileByPath)
 		}
 	}
 
