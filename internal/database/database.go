@@ -91,7 +91,7 @@ func AutoMigrate() error {
 		&models.Chat{},
 		&models.Message{},
 		&models.User{},
-		&models.Organization{},
+		&models.Organisation{},
 	)
 }
 

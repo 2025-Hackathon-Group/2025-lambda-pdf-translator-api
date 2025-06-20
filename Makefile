@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := run
+
 .PHONY: build test clean run
 
 # Binary name
@@ -10,7 +12,7 @@ build:
 
 # Run the application
 run:
-	go run $(MODULE_PATH)
+	gow run $(MODULE_PATH)
 
 # Run tests
 test:
@@ -42,3 +44,7 @@ all: deps build test
 
 migrate:
 	go run cmd/migrate/main.go
+
+.PHONY: swag
+swag:
+	swag init -g cmd/cli/main.go

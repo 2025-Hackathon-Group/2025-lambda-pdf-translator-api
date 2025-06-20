@@ -1,0 +1,565 @@
+definitions:
+  handler.Login.LoginInput:
+    properties:
+      email:
+        example: john.doe@example.com
+        type: string
+      password:
+        example: password
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.Register.RegisterInput:
+    properties:
+      email:
+        example: john.doe@example.com
+        type: string
+      name:
+        example: John Doe
+        type: string
+      password:
+        example: password
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  handler.UpdateUser.UpdateUserInput:
+    properties:
+      email:
+        example: john.doe@example.com
+        type: string
+      name:
+        example: John Doe
+        type: string
+      password:
+        example: password
+        minLength: 6
+        type: string
+    required:
+    - password
+    type: object
+  models.FileUpload:
+    properties:
+      contentType:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      error:
+        type: string
+      fileName:
+        type: string
+      fileSize:
+        type: integer
+      id:
+        type: string
+      originalName:
+        type: string
+      path:
+        type: string
+      processingState:
+        description: pending, processing, completed, failed
+        type: string
+      s3Bucket:
+        type: string
+      s3Key:
+        type: string
+      s3Region:
+        type: string
+      updated_at:
+        type: string
+      uploadedAt:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      userID:
+        type: string
+    type: object
+  models.Organisation:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      fileUploads:
+        items:
+          $ref: '#/definitions/models.FileUpload'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      organisation:
+        $ref: '#/definitions/models.Organisation'
+      organisationID:
+        type: string
+      password:
+        type: string
+      profilePicture:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  response.FileUploadResponse:
+    properties:
+      bucket:
+        example: my-bucket
+        type: string
+      created_at:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      file_name:
+        example: example.pdf
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      path:
+        example: path/to/file
+        type: string
+    type: object
+  response.OrganisationBasicResponse:
+    properties:
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: John Doe
+        type: string
+    type: object
+  response.UserBasicResponse:
+    properties:
+      email:
+        example: john.doe@example.com
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: John Doe
+        type: string
+      organisation:
+        $ref: '#/definitions/response.OrganisationBasicResponse'
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user with the given email and password
+      parameters:
+      - description: User login data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Login.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User logged in successfully
+          schema:
+            properties:
+              token:
+                type: string
+              user:
+                $ref: '#/definitions/response.UserBasicResponse'
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Login a user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with the given name, email, and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Register.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            properties:
+              token:
+                type: string
+              user:
+                $ref: '#/definitions/response.UserBasicResponse'
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /files:
+    get:
+      consumes:
+      - application/json
+      description: Downloads a file from the bucket using its path and bucket name
+      operationId: get-file-by-path
+      parameters:
+      - description: Bucket name
+        example: '"my-bucket"'
+        in: query
+        name: bucket_name
+        required: true
+        type: string
+      - description: File path in bucket
+        example: '"docs/example.pdf"'
+        in: query
+        name: file_path
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File download
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Download file by path and bucket name
+      tags:
+      - buckets
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file to the bucket
+      operationId: upload-file
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Bucket name
+        in: formData
+        name: bucket_name
+        required: true
+        type: string
+      - description: File path in bucket
+        in: formData
+        name: file_path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File uploaded successfully
+          schema:
+            properties:
+              file:
+                $ref: '#/definitions/response.FileUploadResponse'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Upload a file to the bucket
+      tags:
+      - buckets
+  /files/{file_id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns file metadata for a given file ID
+      operationId: get-file-by-id
+      parameters:
+      - description: File ID
+        example: '"1234"'
+        in: path
+        name: file_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File metadata
+          schema:
+            properties:
+              file:
+                $ref: '#/definitions/response.FileUploadResponse'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Get file metadata by file ID
+      tags:
+      - buckets
+  /files/{file_id}/object:
+    get:
+      consumes:
+      - application/json
+      description: Downloads a file from the bucket using its file ID
+      operationId: get-object-from-id
+      parameters:
+      - description: File ID
+        example: '"1234"'
+        in: path
+        name: file_id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File download
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Download file by file ID
+      tags:
+      - buckets
+  /me:
+    get:
+      consumes:
+      - application/json
+      description: Get the current user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile retrieved successfully
+          schema:
+            properties:
+              user:
+                $ref: '#/definitions/models.User'
+            type: object
+        "401":
+          description: User not found in context
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Get the current user's profile
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Update the current user's profile
+      parameters:
+      - description: User update data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateUser.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile updated successfully
+          schema:
+            properties:
+              user:
+                $ref: '#/definitions/response.UserBasicResponse'
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: User not found in context
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Update the current user's profile
+      tags:
+      - users
+  /me/organisations:
+    get:
+      consumes:
+      - application/json
+      description: Get the current user's organisations
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User organisations retrieved successfully
+          schema:
+            properties:
+              organisations:
+                items:
+                  $ref: '#/definitions/response.OrganisationBasicResponse'
+                type: array
+            type: object
+        "401":
+          description: User not found in context
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Get the current user's organisations
+      tags:
+      - users
+swagger: "2.0"

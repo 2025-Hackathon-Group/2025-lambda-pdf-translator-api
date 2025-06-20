@@ -52,7 +52,7 @@ func runSeeders(ctx context.Context) error {
 
 	// Initialize seeders
 	seeders := []seeder.Seeder{
-		seeder.NewOrganizationSeeder(db),
+		seeder.NewOrganisationSeeder(db),
 		seeder.NewUserSeeder(db),
 	}
 

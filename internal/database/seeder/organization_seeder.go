@@ -7,30 +7,30 @@ import (
 	"gorm.io/gorm"
 )
 
-type OrganizationSeeder struct {
+type OrganisationSeeder struct {
 	*BaseSeeder
 }
 
-func NewOrganizationSeeder(db *gorm.DB) *OrganizationSeeder {
-	return &OrganizationSeeder{
+func NewOrganisationSeeder(db *gorm.DB) *OrganisationSeeder {
+	return &OrganisationSeeder{
 		BaseSeeder: NewBaseSeeder(db),
 	}
 }
 
-func (s *OrganizationSeeder) Name() string {
-	return "organization_seeder"
+func (s *OrganisationSeeder) Name() string {
+	return "organisation_seeder"
 }
 
-func (s *OrganizationSeeder) Run(ctx context.Context, db *gorm.DB) error {
-	organizations := []models.Organization{
+func (s *OrganisationSeeder) Run(ctx context.Context, db *gorm.DB) error {
+	organisations := []models.Organisation{
 		{
-			Name:  "Default Organization",
+			Name:  "Default Organisation",
 			Email: "admin@default.org",
 		},
 	}
 
-	for _, org := range organizations {
-		if err := db.FirstOrCreate(&org, models.Organization{Email: org.Email}).Error; err != nil {
+	for _, org := range organisations {
+		if err := db.FirstOrCreate(&org, models.Organisation{Email: org.Email}).Error; err != nil {
 			return err
 		}
 	}

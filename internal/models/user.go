@@ -8,7 +8,7 @@ type User struct {
 	Name           string `gorm:"not null"`
 	Password       string `gorm:"not null"`
 	ProfilePicture string
-	OrganizationID uuid.UUID
-	Organization   Organization
+	OrganisationID uuid.UUID
+	Organisation   Organisation
 	FileUploads    []FileUpload
 }

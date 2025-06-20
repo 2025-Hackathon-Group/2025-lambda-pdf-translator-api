@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/helper"
 	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/models"
 	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/repository"
 	"io"
@@ -28,20 +29,22 @@ func NewBucketHandler(bucketRepository repository.MinioBucketRepository, fileRep
 // @Accept multipart/form-data
 // @Produce json
 // @Security Bearer
+// @Param file formData file true "File to upload"
 // @Param bucket_name formData string true "Bucket name"
 // @Param file_path formData string true "File path in bucket"
-// @Param file formData file true "File to upload"
-// @Success 200 {object} object{message=string,file=response.FileBasicResponse} "File uploaded successfully"
+// @Success 200 {object} object{message=string,file=response.FileUploadResponse} "File uploaded successfully"
 // @Failure 400 {object} object{error=string} "Invalid input"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
-// @Router /bucket/upload [post]
+// @Router /files [post]
 func (h *BucketHandler) UploadFile(c *gin.Context) {
-	var input struct {
+	type UploadFileInput struct {
 		File       *multipart.FileHeader `form:"file" binding:"required" json:"name" example:"John Doe"`
 		BucketName string                `form:"bucket_name" binding:"required"`
 		FilePath   string                `form:"file_path" binding:"required"`
 	}
+
+	var input UploadFileInput
 
 	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -64,7 +67,7 @@ func (h *BucketHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "file": file})
+	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "file": helper.ToFileResponse(file)})
 }
 
 // GetFileByID returns file metadata by file ID
@@ -76,10 +79,10 @@ func (h *BucketHandler) UploadFile(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param file_id path string true "File ID" example("1234")
-// @Success 200 {object} object{file=response.FileBasicResponse} "File metadata"
+// @Success 200 {object} object{file=response.FileUploadResponse} "File metadata"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
-// @Router /bucket/file/{file_id} [get]
+// @Router /files/{file_id} [get]
 func (h *BucketHandler) GetFileByID(c *gin.Context) {
 	fileId := c.Param("file_id")
 
@@ -90,7 +93,7 @@ func (h *BucketHandler) GetFileByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"file": file})
+	c.JSON(http.StatusOK, gin.H{"file": helper.ToFileResponse(*file)})
 }
 
 // GetFileByPath returns a file by its path and bucket name
@@ -106,7 +109,7 @@ func (h *BucketHandler) GetFileByID(c *gin.Context) {
 // @Success 200 {file} file "File download"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
-// @Router /bucket/file [get]
+// @Router /files [get]
 func (h *BucketHandler) GetFileByPath(c *gin.Context) {
 	// Query params
 	filePath := c.Query("file_path")
@@ -144,7 +147,7 @@ func (h *BucketHandler) GetFileByPath(c *gin.Context) {
 // @Success 200 {file} file "File download"
 // @Failure 401 {object} object{error=string} "Unauthorized"
 // @Failure 500 {object} object{error=string} "Internal server error"
-// @Router /bucket/object/{file_id} [get]
+// @Router /files/{file_id}/object [get]
 func (h *BucketHandler) GetObjectFromID(c *gin.Context) {
 	fileId := c.Param("file_id")
 

@@ -59,10 +59,14 @@ func (r *UserRepository) Delete(id uuid.UUID) error {
 }
 
 // GetOrganisations retrieves all organisations a user belongs to
-func (r *UserRepository) GetOrganisations(userID uuid.UUID) ([]models.Organization, error) {
-	var orgs []models.Organization
-	err := r.db.Joins("JOIN users ON users.organisation_id = organizations.id").
+func (r *UserRepository) GetOrganisations(userID uuid.UUID) ([]models.Organisation, error) {
+	var orgs []models.Organisation
+	err := r.db.Joins("JOIN users ON users.organisation_id = organisations.id").
 		Where("users.id = ?", userID).
 		Find(&orgs).Error
 	return orgs, err
+}
+
+func (r *UserRepository) Save(user *models.User) error {
+	return r.db.Save(user).Error
 }

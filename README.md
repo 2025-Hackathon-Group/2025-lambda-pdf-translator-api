@@ -24,7 +24,7 @@ Password:       "password"
 ```
 **Organisation**
 ```
-Name:  "Default Organization",
+Name:  "Default Organisation",
 Email: "admin@default.org",
 ```
 

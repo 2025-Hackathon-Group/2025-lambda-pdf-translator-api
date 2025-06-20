@@ -30,7 +30,7 @@ func (s *UserSeeder) Run(ctx context.Context, db *gorm.DB) error {
 		return err
 	}
 
-	org := models.Organization{}
+	org := models.Organisation{}
 	db.First(&org)
 
 	users := []models.User{
@@ -38,7 +38,7 @@ func (s *UserSeeder) Run(ctx context.Context, db *gorm.DB) error {
 			Name:           "Default User",
 			Email:          "saml@everbit.dev",
 			Password:       hashedPassword,
-			OrganizationID: org.ID,
+			OrganisationID: org.ID,
 		},
 	}
 

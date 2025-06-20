@@ -1,37 +1,46 @@
 package handler
 
 import (
+	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/helper"
 	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/models"
 	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/repository"
 	"2025-Hackathon-Group/2025-lambda-pdf-translator-api/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type UserHandler struct {
-	userService *service.UserService
-	repo        *repository.UserRepository
-	DB          *gorm.DB
+	userService    *service.UserService
+	userRepository *repository.UserRepository
 }
 
 func NewUserHandler(userService *service.UserService, repo *repository.UserRepository, db *gorm.DB) *UserHandler {
 	return &UserHandler{
-		userService: userService,
-		repo:        repo,
-		DB:          db,
+		userService:    userService,
+		userRepository: repo,
 	}
 }
 
-// Register handles user registration
+// @Summary Register a new user
+// @Description Register a new user with the given name, email, and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body handler.Register.RegisterInput true "User registration data"
+// @Success 201 {object} object{user=response.UserBasicResponse,token=string} "User registered successfully"
+// @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
-	var input struct {
-		Name     string `json:"name" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=6"`
+	type RegisterInput struct {
+		Name     string `json:"name" binding:"required" example:"John Doe"`
+		Email    string `json:"email" binding:"required,email" example:"john.doe@example.com"`
+		Password string `json:"password" binding:"required,min=6" example:"password"`
 	}
+
+	var input RegisterInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -46,7 +55,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	// Create the user
-	user, err := h.repo.Create(input.Name, input.Email, hashedPassword)
+	user, err := h.userRepository.Create(input.Name, input.Email, hashedPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
@@ -60,17 +69,29 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"user":  user,
+		"user":  helper.ToUserResponse(*user),
 		"token": token,
 	})
 }
 
-// Login handles user login
+// @Summary Login a user
+// @Description Login a user with the given email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body handler.Login.LoginInput true "User login data"
+// @Success 200 {object} object{user=response.UserBasicResponse,token=string} "User logged in successfully"
+// @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 401 {object} object{error=string} "Invalid credentials"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
-	var input struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
+	type LoginInput struct {
+		Email    string `json:"email" binding:"required,email" example:"john.doe@example.com"`
+		Password string `json:"password" binding:"required" example:"password"`
 	}
+
+	var input LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -78,7 +99,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	// Get user by email
-	user, err := h.repo.GetByEmail(input.Email)
+	user, err := h.userRepository.GetByEmail(input.Email)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
@@ -98,12 +119,21 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":  user,
+		"user":  helper.ToUserResponse(*user),
 		"token": token,
 	})
 }
 
-// GetUser retrieves the current user's profile
+// @Summary Get the current user's profile
+// @Description Get the current user's profile
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} object{user=models.User} "User profile retrieved successfully"
+// @Failure 401 {object} object{error=string} "User not found in context"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /me [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -111,18 +141,19 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	// Get fresh user data from database
-	currentUser := user.(*models.User)
-	freshUser, err := h.repo.GetByID(currentUser.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user profile"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"user": freshUser})
+	c.JSON(http.StatusOK, gin.H{"user": helper.ToUserResponse(*user.(*models.User))})
 }
 
-// GetUserOrganisations retrieves all organisations the current user belongs to
+// @Summary Get the current user's organisations
+// @Description Get the current user's organisations
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} object{organisations=[]response.OrganisationBasicResponse} "User organisations retrieved successfully"
+// @Failure 401 {object} object{error=string} "User not found in context"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /me/organisations [get]
 func (h *UserHandler) GetUserOrganisations(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -131,66 +162,66 @@ func (h *UserHandler) GetUserOrganisations(c *gin.Context) {
 	}
 
 	currentUser := user.(*models.User)
-	orgs, err := h.repo.GetOrganisations(currentUser.ID)
+	orgs, err := h.userRepository.GetOrganisations(currentUser.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve organisations"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"organisations": orgs})
+	c.JSON(http.StatusOK, gin.H{"organisations": helper.ToOrganisationsResponse(orgs)})
 }
 
-type UpdateUserInput struct {
-	Name     *string `json:"name"`
-	Email    *string `json:"email"`
-	Password *string `json:"password"`
-}
-
+// @Summary Update the current user's profile
+// @Description Update the current user's profile
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param input body handler.UpdateUser.UpdateUserInput true "User update data"
+// @Success 200 {object} object{user=response.UserBasicResponse} "User profile updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid input"
+// @Failure 401 {object} object{error=string} "User not found in context"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /me [patch]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found in context"})
-		return
-	}
-
-	dbUser, ok := user.(*models.User)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
-		return
+	type UpdateUserInput struct {
+		Name     string `json:"name" example:"John Doe"`
+		Email    string `json:"email" example:"john.doe@example.com"`
+		Password string `json:"password" binding:"required,min=6" example:"password"`
 	}
 
 	var input UpdateUserInput
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if input.Name != nil {
-		dbUser.Name = *input.Name
+	dbUser := c.MustGet("user").(*models.User)
+
+	if input.Name != "" {
+		dbUser.Name = input.Name
 	}
-	if input.Email != nil {
-		dbUser.Email = *input.Email
+
+	if input.Email != "" {
+		dbUser.Email = input.Email
 	}
-	if input.Password != nil {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
+
+	if input.Password != "" {
+		hashedPassword, err := h.userService.HashPassword(input.Password)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 			return
 		}
-		dbUser.Password = string(hashedPassword)
+		dbUser.Password = hashedPassword
 	}
 
-	if err := h.DB.Save(&dbUser).Error; err != nil {
+	if err := h.userRepository.Save(dbUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
-	// Do not return password
-	response := gin.H{
-		"id":    dbUser.ID,
-		"name":  dbUser.Name,
-		"email": dbUser.Email,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{
+		"user": helper.ToUserResponse(*dbUser),
+	})
 }

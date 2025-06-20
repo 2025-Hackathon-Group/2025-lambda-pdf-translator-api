@@ -8,7 +8,11 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
+
+	_ "2025-Hackathon-Group/2025-lambda-pdf-translator-api/docs"
 )
 
 // NewRouter initializes and returns a new Gin router
@@ -31,8 +35,9 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 	// Initialize middleware
 	authMiddleware := middleware.AuthMiddleware(db, userService)
 
-	api := r.Group("/api/v1")
+	api := r.Group("")
 	{
+		api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"message": "pong",
@@ -44,17 +49,18 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 			authRoutes.POST("/login", userHandler.Login)
 		}
 
-		userRoutes := api.Group("/user").Use(authMiddleware)
+		userRoutes := api.Group("/me").Use(authMiddleware)
 		{
-			userRoutes.GET("/", userHandler.GetUser)
-			userRoutes.PUT("/", userHandler.UpdateUser)
-			userRoutes.GET("/organizations", userHandler.GetUserOrganisations)
+			userRoutes.GET("", userHandler.GetUser)
+			userRoutes.PATCH("", userHandler.UpdateUser)
+			userRoutes.GET("/organisations", userHandler.GetUserOrganisations)
 		}
 		fileRoutes := api.Group("/files")
 		{
 			fileRoutes.Use(authMiddleware)
 			fileRoutes.POST("/", bucketHandler.UploadFile)
 			fileRoutes.GET("/:file_id", bucketHandler.GetFileByID)
+			fileRoutes.GET("/:file_id/object", bucketHandler.GetObjectFromID)
 			fileRoutes.GET("/", bucketHandler.GetFileByPath)
 		}
 	}
